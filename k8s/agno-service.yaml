@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agno-service
+  namespace: ai-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agno-service
+  template:
+    metadata:
+      labels:
+        app: agno-service
+    spec:
+      containers:
+        - name: agno-service
+          image: agno-service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CLICKHOUSE_HOST
+              value: "clickhouse.clickhouse.svc.cluster.local"
+            - name: CLICKHOUSE_PORT
+              value: "8123"
+            - name: CLICKHOUSE_USER
+              value: "default"
+            - name: CLICKHOUSE_PASSWORD
+              value: ""
+            - name: CLICKHOUSE_SECURE
+              value: "false"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anthropic-api-key
+                  key: api-key
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agno-service
+  namespace: ai-demo
+spec:
+  selector:
+    app: agno-service
+  ports:
+    - port: 8080
+      targetPort: 8080
